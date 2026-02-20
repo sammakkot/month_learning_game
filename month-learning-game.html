@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Month Learning Game - Russian, English & Finnish</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes firework {
+            0% { 
+                transform: translate(0, 0) scale(0); 
+                opacity: 1; 
+            }
+            20% {
+                opacity: 1;
+            }
+            100% { 
+                transform: translate(var(--tx), var(--ty)) scale(2); 
+                opacity: 0; 
+            }
+        }
+        
+        .firework {
+            position: fixed;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 0 20px currentColor;
+        }
+        
+        @keyframes slideAcross {
+            0% { transform: translateX(-150%); }
+            100% { transform: translateX(150vw); }
+        }
+        
+        .slide-across {
+            animation: slideAcross 3s linear;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.2); }
+        }
+        
+        .bounce-text {
+            animation: bounce 0.6s ease-in-out 3;
+        }
+        
+        @keyframes rotate67 {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
+            100% { transform: rotate(0deg); }
+        }
+        
+        .rotate-67 {
+            animation: rotate67 0.3s ease-in-out infinite;
+        }
+        
+        @keyframes sadShake {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(-10px) rotate(-5deg); }
+            75% { transform: translateX(10px) rotate(5deg); }
+        }
+        
+        .sad-shake {
+            animation: sadShake 0.5s ease-in-out 3;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const MonthLearningGame = () => {
+            const months = [
+                {
+                    russian: 'Январь',
+                    english: 'January',
+                    finnish: 'Tammikuu',
+                    hint: 'Uudenvuoden juhla! 🎉',
+                    image: '🎊'
+                },
+                {
+                    russian: 'Февраль',
+                    english: 'February',
+                    finnish: 'Helmikuu',
+                    hint: 'Lyhin kuukausi ❄️',
+                    image: '💝'
+                },
+                {
+                    russian: 'Март',
+                    english: 'March',
+                    finnish: 'Maaliskuu',
+                    hint: 'Kevät alkaa! 🌱',
+                    image: '🌷'
+                },
+                {
+                    russian: 'Апрель',
+                    english: 'April',
+                    finnish: 'Huhtikuu',
+                    hint: 'Sateet tuovat kukkia 🌧️',
+                    image: '☔'
+                },
+                {
+                    russian: 'Май',
+                    english: 'May',
+                    finnish: 'Toukokuu',
+                    hint: 'Syntymäpäiväkuukautesi! 🎂',
+                    image: '🎈'
+                },
+                {
+                    russian: 'Июнь',
+                    english: 'June',
+                    finnish: 'Kesäkuu',
+                    hint: 'Kesä alkaa! ☀️',
+                    image: '🌞'
+                },
+                {
+                    russian: 'Июль',
+                    english: 'July',
+                    finnish: 'Heinäkuu',
+                    hint: 'Kuumat kesäpäivät! 🏖️',
+                    image: '🍦'
+                },
+                {
+                    russian: 'Август',
+                    english: 'August',
+                    finnish: 'Elokuu',
+                    hint: 'Kesän viimeinen kuukausi 🌊',
+                    image: '🏄'
+                },
+                {
+                    russian: 'Сентябрь',
+                    english: 'September',
+                    finnish: 'Syyskuu',
+                    hint: 'Syksy alkaa! 🍂',
+                    image: '🍁'
+                },
+                {
+                    russian: 'Октябрь',
+                    english: 'October',
+                    finnish: 'Lokakuu',
+                    hint: 'Halloween-kuukausi! 🎃',
+                    image: '🎃'
+                },
+                {
+                    russian: 'Ноябрь',
+                    english: 'November',
+                    finnish: 'Marraskuu',
+                    hint: 'Lehdet putoavat 🍂',
+                    image: '🌰'
+                },
+                {
+                    russian: 'Декабрь',
+                    english: 'December',
+                    finnish: 'Joulukuu',
+                    hint: 'Jouluaika! 🎄',
+                    image: '🎅'
+                }
+            ];
+
+            const [randomMode, setRandomMode] = useState(false);
+            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+            const [selectedEnglish, setSelectedEnglish] = useState('');
+            const [selectedFinnish, setSelectedFinnish] = useState('');
+            const [score, setScore] = useState(0);
+            const [showResult, setShowResult] = useState(false);
+            const [gameComplete, setGameComplete] = useState(false);
+            const [questionOrder, setQuestionOrder] = useState([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+            const [consecutivePerfectScores, setConsecutivePerfectScores] = useState(0);
+            const [showEuroWin, setShowEuroWin] = useState(false);
+            const [specialEffect, setSpecialEffect] = useState(null);
+
+            const specialEffects = [
+                'fireworks',
+                'sixseven',
+                'toilet',
+                'bullseye',
+                'crazy'
+            ];
+
+            const currentMonth = months[questionOrder[currentQuestionIndex]];
+
+            const speak = (text, lang) => {
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = lang;
+                    utterance.rate = 0.8;
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            const speakRussian = (text) => {
+                speak(text, 'ru-RU');
+            };
+
+            const speakEnglish = (text) => {
+                speak(text, 'en-US');
+            };
+
+            const speakFinnish = (text) => {
+                speak(text, 'fi-FI');
+            };
+
+            const playSpecialEffect = () => {
+                const randomEffect = specialEffects[Math.floor(Math.random() * specialEffects.length)];
+                setSpecialEffect(randomEffect);
+
+                // Play sound for the effect
+                const utterance = new SpeechSynthesisUtterance();
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+
+                switch(randomEffect) {
+                    case 'fireworks':
+                        // Ta-da sound - play immediately with fireworks
+                        utterance.text = "Ta da!";
+                        utterance.lang = 'en-US';
+                        utterance.pitch = 1.2;
+                        utterance.rate = 0.9;
+                        window.speechSynthesis.speak(utterance);
+                        break;
+                    case 'sixseven':
+                        utterance.text = "Six Seven!";
+                        utterance.lang = 'en-US';
+                        window.speechSynthesis.speak(utterance);
+                        break;
+                    case 'toilet':
+                        // Water splash sound
+                        utterance.text = "Sploosh!";
+                        utterance.lang = 'en-US';
+                        utterance.pitch = 0.6;
+                        utterance.rate = 1.5;
+                        window.speechSynthesis.speak(utterance);
+                        break;
+                    case 'bullseye':
+                        utterance.text = "Bulls eye!";
+                        utterance.lang = 'en-US';
+                        utterance.pitch = 0.7;
+                        utterance.rate = 0.8;
+                        window.speechSynthesis.speak(utterance);
+                        break;
+                    case 'crazy':
+                        utterance.text = "Man, you are crazy!";
+                        utterance.lang = 'en-US';
+                        window.speechSynthesis.speak(utterance);
+                        break;
+                }
+
+                // Clear the effect after animation completes
+                setTimeout(() => setSpecialEffect(null), 3000);
+            };
+
+            const playSadTrombone = () => {
+                setSpecialEffect('sadtrombone');
+                
+                // Sad trombone sound - play immediately
+                const utterance = new SpeechSynthesisUtterance();
+                utterance.text = "Wah wah wah waaaaah";
+                utterance.lang = 'en-US';
+                utterance.pitch = 0.3;
+                utterance.rate = 0.6;
+                window.speechSynthesis.speak(utterance);
+                
+                setTimeout(() => setSpecialEffect(null), 3000);
+            };
+
+            const shuffleArray = (array) => {
+                const shuffled = [...array];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                return shuffled;
+            };
+
+            const startRandomMode = () => {
+                setRandomMode(true);
+                setQuestionOrder(shuffleArray([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]));
+                setCurrentQuestionIndex(0);
+                setScore(0);
+                setSelectedEnglish('');
+                setSelectedFinnish('');
+                setShowResult(false);
+                setGameComplete(false);
+                setShowEuroWin(false);
+            };
+
+            const resetGame = () => {
+                setRandomMode(false);
+                setQuestionOrder([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+                setCurrentQuestionIndex(0);
+                setScore(0);
+                setSelectedEnglish('');
+                setSelectedFinnish('');
+                setShowResult(false);
+                setGameComplete(false);
+                setShowEuroWin(false);
+            };
+
+            const checkAnswer = () => {
+                const isCorrect = selectedEnglish === currentMonth.english && 
+                                selectedFinnish === currentMonth.finnish;
+                
+                if (isCorrect) {
+                    setScore(score + 1);
+                    playSpecialEffect();
+                } else {
+                    playSadTrombone();
+                }
+                
+                setShowResult(true);
+
+                setTimeout(() => {
+                    if (currentQuestionIndex < 11) {
+                        setCurrentQuestionIndex(currentQuestionIndex + 1);
+                        setSelectedEnglish('');
+                        setSelectedFinnish('');
+                        setShowResult(false);
+                    } else {
+                        setGameComplete(true);
+                        // Only track consecutive perfect scores in random mode
+                        if (randomMode) {
+                            const finalScore = isCorrect ? score + 1 : score;
+                            if (finalScore === 12) {
+                                const newConsecutiveCount = consecutivePerfectScores + 1;
+                                setConsecutivePerfectScores(newConsecutiveCount);
+                                if (newConsecutiveCount === 3) {
+                                    setShowEuroWin(true);
+                                    setConsecutivePerfectScores(0);
+                                }
+                            } else {
+                                setConsecutivePerfectScores(0);
+                            }
+                        }
+                    }
+                }, 2000);
+            };
+
+            const englishMonths = months.map(m => m.english);
+            const finnishMonths = months.map(m => m.finnish);
+
+            // SVG Icons
+            const Volume2Icon = () => (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                </svg>
+            );
+
+            const SmallVolume2Icon = () => (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+            );
+
+            const TrophyIcon = () => (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                    <path d="M4 22h16"></path>
+                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                </svg>
+            );
+
+            const ShuffleIcon = () => (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="16 3 21 3 21 8"></polyline>
+                    <line x1="4" y1="20" x2="21" y2="3"></line>
+                    <polyline points="21 16 21 21 16 21"></polyline>
+                    <line x1="15" y1="15" x2="21" y2="21"></line>
+                    <line x1="4" y1="4" x2="9" y2="9"></line>
+                </svg>
+            );
+
+            const RotateCcwIcon = () => (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+            );
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 p-4">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="bg-white rounded-3xl shadow-2xl p-6">
+                            <div className="text-center mb-6">
+                                <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-1">
+                                    Month Learning Game
+                                </h1>
+                                <p className="text-gray-600 text-base">Learn months in Russian, English & Finnish!</p>
+                            </div>
+
+                            {!gameComplete ? (
+                                <>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-full font-bold text-base">
+                                            Question {currentQuestionIndex + 1} / 12
+                                        </div>
+                                        <div className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-4 py-2 rounded-full font-bold text-base">
+                                            Score: {score}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Left side - Question */}
+                                        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-6 border-4 border-yellow-300 flex flex-col justify-center">
+                                            <div className="text-center">
+                                                <div className="text-6xl mb-3">{currentMonth.image}</div>
+                                                <div className="text-4xl font-bold text-gray-800 mb-2">
+                                                    {currentMonth.russian}
+                                                </div>
+                                                <div className="text-lg text-gray-600 mb-3">{currentMonth.hint}</div>
+                                                <button
+                                                    onClick={() => speakRussian(currentMonth.russian)}
+                                                    className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-full font-semibold flex items-center gap-2 mx-auto transition-colors text-sm"
+                                                >
+                                                    <Volume2Icon />
+                                                    Hear pronunciation
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Right side - Answers */}
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-lg font-semibold mb-2 text-gray-700">
+                                                    🇬🇧 Choose English month:
+                                                </label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {englishMonths.map((month) => (
+                                                        <div key={month} className="relative">
+                                                            <button
+                                                                onClick={() => setSelectedEnglish(month)}
+                                                                disabled={showResult}
+                                                                className={`w-full p-2 rounded-lg font-semibold text-sm transition-all ${
+                                                                    selectedEnglish === month
+                                                                        ? 'bg-blue-500 text-white shadow-lg transform scale-105'
+                                                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                                                } ${showResult ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+                                                            >
+                                                                {month}
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    speakEnglish(month);
+                                                                }}
+                                                                className="absolute -top-1 -right-1 bg-blue-400 hover:bg-blue-500 text-white p-1 rounded-full shadow-md transition-colors"
+                                                                title="Hear pronunciation"
+                                                            >
+                                                                <SmallVolume2Icon />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-lg font-semibold mb-2 text-gray-700">
+                                                    🇫🇮 Valitse suomalainen kuukausi:
+                                                </label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {finnishMonths.map((month) => (
+                                                        <div key={month} className="relative">
+                                                            <button
+                                                                onClick={() => setSelectedFinnish(month)}
+                                                                disabled={showResult}
+                                                                className={`w-full p-2 rounded-lg font-semibold text-sm transition-all ${
+                                                                    selectedFinnish === month
+                                                                        ? 'bg-purple-500 text-white shadow-lg transform scale-105'
+                                                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                                                } ${showResult ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+                                                            >
+                                                                {month}
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    speakFinnish(month);
+                                                                }}
+                                                                className="absolute -top-1 -right-1 bg-purple-400 hover:bg-purple-500 text-white p-1 rounded-full shadow-md transition-colors"
+                                                                title="Hear pronunciation"
+                                                            >
+                                                                <SmallVolume2Icon />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {!showResult ? (
+                                                <button
+                                                    onClick={checkAnswer}
+                                                    disabled={!selectedEnglish || !selectedFinnish}
+                                                    className={`w-full py-3 rounded-xl font-bold text-lg transition-all ${
+                                                        selectedEnglish && selectedFinnish
+                                                            ? 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white shadow-lg transform hover:scale-105'
+                                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                    }`}
+                                                >
+                                                    Check Answer!
+                                                </button>
+                                            ) : (
+                                                <div className={`w-full py-4 rounded-xl font-bold text-lg text-center ${
+                                                    selectedEnglish === currentMonth.english && selectedFinnish === currentMonth.finnish
+                                                        ? 'bg-green-500 text-white'
+                                                        : 'bg-red-500 text-white'
+                                                }`}>
+                                                    {selectedEnglish === currentMonth.english && selectedFinnish === currentMonth.finnish
+                                                        ? '🎉 Correct! Well done!'
+                                                        : `❌ Correct: ${currentMonth.english} / ${currentMonth.finnish}`}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {!showResult && currentQuestionIndex === 0 && (
+                                        <div className="mt-4 text-center">
+                                            <button
+                                                onClick={startRandomMode}
+                                                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-5 py-2 rounded-full font-bold text-base flex items-center gap-2 mx-auto transition-all transform hover:scale-105"
+                                            >
+                                                <ShuffleIcon />
+                                                Switch to Random Mode
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-center py-8">
+                                    {showEuroWin && (
+                                        <div className="mb-6 animate-pulse">
+                                            <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-white text-5xl sm:text-6xl font-black py-8 px-6 rounded-3xl shadow-2xl border-8 border-yellow-300 transform rotate-2">
+                                                🎉💰 YOU WON 1 EURO! 💰🎉
+                                            </div>
+                                            <p className="text-2xl font-bold text-green-600 mt-4">
+                                                Three perfect scores in a row!
+                                            </p>
+                                        </div>
+                                    )}
+                                    {!showEuroWin && consecutivePerfectScores > 0 && score === 12 && randomMode && (
+                                        <div className="mb-4 bg-blue-100 border-4 border-blue-400 rounded-2xl p-3">
+                                            <p className="text-xl font-bold text-blue-800">
+                                                🌟 Perfect Score Streak: {consecutivePerfectScores}/3
+                                            </p>
+                                            <p className="text-base text-blue-600">
+                                                {3 - consecutivePerfectScores} more perfect {3 - consecutivePerfectScores === 1 ? 'score' : 'scores'} to win 1 euro!
+                                            </p>
+                                        </div>
+                                    )}
+                                    <div className="text-7xl mb-4">
+                                        {score === 12 ? '🏆' : score >= 9 ? '⭐' : '👍'}
+                                    </div>
+                                    <h2 className="text-3xl font-bold mb-3 text-gray-800">
+                                        Game Complete!
+                                    </h2>
+                                    <p className="text-2xl font-semibold mb-6 text-purple-600">
+                                        Your Score: {score} / 12
+                                    </p>
+                                    {score === 12 && (
+                                        <p className="text-xl text-green-600 font-bold mb-6">
+                                            Perfect! You're a month master! 🌟
+                                        </p>
+                                    )}
+                                    {!randomMode && (
+                                        <p className="text-lg text-gray-600 mb-6">
+                                            Great practice! Try Random Mode to count toward the 1 euro prize!
+                                        </p>
+                                    )}
+                                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                        <button
+                                            onClick={resetGame}
+                                            className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-6 py-3 rounded-2xl font-bold text-lg flex items-center gap-2 justify-center transition-all transform hover:scale-105"
+                                        >
+                                            <RotateCcwIcon />
+                                            Play Again (In Order)
+                                        </button>
+                                        <button
+                                            onClick={startRandomMode}
+                                            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-3 rounded-2xl font-bold text-lg flex items-center gap-2 justify-center transition-all transform hover:scale-105"
+                                        >
+                                            <ShuffleIcon />
+                                            Random Mode
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Special Effects Overlay */}
+                    {specialEffect === 'fireworks' && (
+                        <div className="fixed inset-0 pointer-events-none z-50">
+                            {[...Array(30)].map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="firework"
+                                    style={{
+                                        left: '50%',
+                                        top: '50%',
+                                        backgroundColor: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff1493'][i % 8],
+                                        '--tx': `${(Math.random() - 0.5) * 1200}px`,
+                                        '--ty': `${(Math.random() - 0.5) * 1200}px`,
+                                        animation: `firework 1.5s ease-out ${i * 0.03}s forwards`
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    )}
+                    
+                    {specialEffect === 'sixseven' && (
+                        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
+                            <div className="text-9xl font-black text-yellow-400 rotate-67" style={{textShadow: '0 0 20px rgba(0,0,0,0.5)'}}>
+                                6-7!
+                            </div>
+                        </div>
+                    )}
+                    
+                    {specialEffect === 'toilet' && (
+                        <div className="fixed top-1/2 -left-32 pointer-events-none z-50 slide-across">
+                            <div className="text-9xl transform -translate-y-1/2">
+                                🚽💦
+                            </div>
+                        </div>
+                    )}
+                    
+                    {specialEffect === 'bullseye' && (
+                        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
+                            <div className="text-8xl font-black text-red-600 bounce-text" style={{textShadow: '0 0 20px rgba(0,0,0,0.5)'}}>
+                                🎯 BULL'S EYE!
+                            </div>
+                        </div>
+                    )}
+                    
+                    {specialEffect === 'crazy' && (
+                        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
+                            <div className="text-7xl font-black text-purple-600 bounce-text" style={{textShadow: '0 0 20px rgba(0,0,0,0.5)'}}>
+                                🤪 MAN, YOU ARE CRAZY!
+                            </div>
+                        </div>
+                    )}
+                    
+                    {specialEffect === 'sadtrombone' && (
+                        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
+                            <div className="text-9xl sad-shake">
+                                😢🎺
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MonthLearningGame />);
+    </script>
+</body>
+</html>
